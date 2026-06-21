@@ -1,0 +1,12 @@
+<view class="menu">
+  <view class="title">天 眼</view>
+  <view class="subtitle">—— 倒计时 D-3 ——</view>
+
+  <button class="btn primary" bindtap="newGame">新 游 戏</button>
+  <button class="btn" bindtap="continueGame" wx:if="{{hasSave}}">继续游戏</button>
+  <button class="btn" bindtap="showEndings">结局收集</button>
+
+  <view class="tip">
+    AI 对话与结局后记由后端安全代理生成，无需配置 Key
+  </view>
+</view>

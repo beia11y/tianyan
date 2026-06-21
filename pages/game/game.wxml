@@ -1,0 +1,114 @@
+<view class="stage">
+
+<!-- 背景图 -->
+<image class="bg-img bg-fade-in" src="{{bg}}" mode="aspectFill" wx:if="{{bg}}"/>
+
+<!-- 情绪滤镜/暗角 -->
+<view class="mood-layer {{sceneMood}}" wx:if="{{sceneMood}}"></view>
+
+<!-- 右上角：历史 + 自动播放 + 加速 + BGM + 语音 -->
+<view class="top-btns">
+  <view class="mute-btn" bindtap="toggleHistory">📜</view>
+  <view class="mute-btn" bindtap="toggleAutoPlay">{{autoPlay ? '⏸' : '▶'}}</view>
+  <view class="mute-btn" bindtap="toggleSpeedMode">{{speedMode ? '⚡' : '⏱'}}</view>
+  <view class="mute-btn" bindtap="toggleBgmMute">
+    {{bgmMuted ? '🎵̸' : '🎵'}}
+  </view>
+  <view class="mute-btn" bindtap="toggleMute">
+    {{muted ? '🔇' : '🔊'}}
+  </view>
+</view>
+
+<!-- 立绘 -->
+<view class="char-area" wx:if="{{speaker.avatar && !showEnd}}">
+  <view class="char-wrapper">
+    <image src="{{speaker.avatar}}" class="char-img {{charMood}}" mode="aspectFit"/>
+  </view>
+</view>
+
+<!-- 场景切换标题 -->
+<view wx:if="{{sceneTitle}}" class="scene-title">
+  <view class="scene-title-main">{{sceneTitle}}</view>
+  <view class="scene-title-sub">{{sceneSubtitle}}</view>
+</view>
+
+<!-- 对话框 -->
+<view wx:if="{{showDialog}}" class="dialog-box" bindtap="onNext">
+  <view wx:if="{{speaker.name}}" class="name-wrap">
+    <view wx:if="{{speaker.role}}" class="role-tag">{{speaker.role}}</view>
+    <view class="name-tag">{{speaker.name}}</view>
+  </view>
+  <view class="dialog-text">{{displayText}}</view>
+  <view wx:if="{{typingDone}}" class="next-btn" catchtap="onNext">
+    继续 <text class="next-arrow">▶</text>
+  </view>
+</view>
+
+<!-- 选择框 -->
+<view wx:if="{{showChoice}}" class="choice-box">
+  <view class="choice-prompt">{{choicePrompt}}</view>
+  <view wx:for="{{choices}}" wx:key="index"
+        class="choice-item" bindtap="onChoose" data-index="{{index}}">
+    {{item.text}}
+  </view>
+</view>
+
+<!-- AI 输入框 -->
+<view wx:if="{{showAIInput}}" class="ai-input-box">
+  <view class="ai-title">
+    <text class="ai-icon">💬</text>
+    <text class="ai-target">对 {{aiSpeakerName}} 说：</text>
+  </view>
+  <view class="ai-prompt">{{aiPrompt}}</view>
+  <textarea class="ai-textarea"
+            value="{{aiInputText}}"
+            placeholder="{{aiPlaceholder}}"
+            placeholder-class="ai-placeholder"
+            maxlength="100"
+            auto-height="{{true}}"
+            show-confirm-bar="{{false}}"
+            bindinput="onAIInputChange"/>
+  <view class="ai-tip">由后端 AI 生成对方回应（最多100字）</view>
+  <view class="ai-btn-row">
+    <button class="ai-btn-skip" bindtap="onAISkip">跳过</button>
+    <button class="ai-btn-submit" bindtap="onAISubmit">发送 ▶</button>
+  </view>
+</view>
+
+<!-- AI 加载中 -->
+<view wx:if="{{showAILoading}}" class="ai-loading">
+  <view class="ai-loading-spinner"></view>
+  <view class="ai-loading-text">{{aiLoadingText}}</view>
+</view>
+
+<!-- 结局 -->
+<view wx:if="{{showEnd}}" class="end-box">
+  <scroll-view class="end-scroll" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{true}}">
+    <view class="end-title">{{endTitle}}</view>
+  </scroll-view>
+  <button class="end-btn" bindtap="onChapterEnd">继续</button>
+  <button class="poster-btn" bindtap="drawPoster">分享海报</button>
+</view>
+
+<!-- 分享海报层 -->
+<view wx:if="{{showPoster}}" class="poster-overlay" bindtap="closePoster">
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
+  <view class="poster-actions">
+    <button class="poster-action-btn" bindtap="savePoster">保存到相册</button>
+    <button class="poster-action-btn secondary" bindtap="closePoster">关闭</button>
+  </view>
+</view>
+
+<!-- 历史记录面板 -->
+<view wx:if="{{showHistory}}" class="history-panel" bindtap="toggleHistory">
+  <scroll-view class="history-scroll" scroll-y="{{true}}" enhanced="{{true}}" catchtap="preventHistoryClose">
+    <view class="history-title">对话记录</view>
+    <view wx:for="{{history}}" wx:key="index" class="history-item">
+      <view class="history-name">{{item.name}}</view>
+      <view class="history-text">{{item.text}}</view>
+    </view>
+    <view wx:if="{{history.length === 0}}" class="history-empty">暂无记录</view>
+  </scroll-view>
+</view>
+
+</view>

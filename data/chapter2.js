@@ -1,0 +1,316 @@
+const app = getApp();
+
+module.exports = {
+  start: { type: 'scene', bg: '/pages/game/images/bg_office.jpg',
+    title: '第二章 · 对峙升级', subtitle: '项目上线倒计时 D-1 · 上午 9:00',
+    mood: 'tense',
+    next: 's1' },
+
+  s1: { type: 'dialog', speaker: 'narrator',
+    text: '刘朝闻回来了。脸色比平时更差，保温杯里的茶都凉了也没喝。',
+    mood: 'tense',
+    next: 's2' },
+
+  // 根据第一章是否协助林茜，开场情境不同
+  s2: { type: 'branch',
+    condition: () => app.globalData.flags.ch1_helped_lin,
+    ifTrue: 's3_helped', ifFalse: 's3_normal' },
+
+  s3_helped: { type: 'dialog', speaker: 'narrator',
+    text: '赵则言今早做晨检时，没有发现新的违规提交——林茜昨夜的所有改动，都附了一份事后审批申请。',
+    next: 's4' },
+  s3_normal: { type: 'dialog', speaker: 'narrator',
+    text: '赵则言今早晨检，林茜又新增了三个未审批的 commit。他的脸色越来越难看。',
+    mood: 'tense',
+    next: 's4' },
+
+  s4: { type: 'dialog', speaker: 'liu',
+    text: '听说出了点状况。都到我工位来一下。',
+    next: 'choice_walk' },
+
+  // ★ 选择1：走过去时心里在想什么
+  choice_walk: { type: 'choice', prompt: '（在走过去的路上，你心里想的是……）',
+    options: [
+      { text: 'A. "希望刘哥能站在林茜这边。"',
+        next: 'scene2', flag: { empathy_score_add: 1 } },
+      { text: 'B. "无论怎样，结论要符合公司流程。"',
+        next: 'scene2', flag: { rational_score_add: 1 } },
+      { text: 'C. "看戏就好，不要表态。"',
+        next: 'scene2', flag: { hostile_score_add: 1 } },
+      { text: 'D. "我准备好替林茜说话了。"',
+        next: 'scene2', flag: { decisive_score_add: 2 } }
+    ]
+  },
+
+  // ===== 2-1 三方对峙 =====
+  scene2: { type: 'scene', bg: '/pages/game/images/bg_office.jpg',
+    title: '2-1 三方对峙', subtitle: '上午 10:00 · 刘朝闻工位',
+    mood: 'tense',
+    next: 's5' },
+
+  s5: { type: 'dialog', speaker: 'liu',
+    text: '赵则言你先说。',
+    mood: 'tense',
+    next: 's6' },
+  s6: { type: 'dialog', speaker: 'zhao',
+    text: '林茜在 release 分支上有未审批的 push。这是事实，不管出于什么动机，流程上就是违规。',
+    mood: 'tense',
+    next: 's7' },
+  s7: { type: 'dialog', speaker: 'lin',
+    text: '我承认违规。但补丁是必要的——原版模型在养老场景下漏诊率 8.7%，我做过三百组测试。',
+    mood: 'tense',
+    next: 's8' },
+  s8: { type: 'dialog', speaker: 'lin',
+    text: '刘哥，这个数据我上周三的周会就提过。',
+    next: 's9' },
+  s9: { type: 'dialog', speaker: 'narrator',
+    text: '刘朝闻的手指在保温杯上敲了敲。他看了一眼桌上那张全家福。',
+    next: 's10' },
+  s10: { type: 'dialog', speaker: 'liu',
+    text: '林茜，你的测试数据我看过。问题确实存在。',
+    mood: 'tense',
+    next: 's11' },
+  s11: { type: 'dialog', speaker: 'lin', text: '所以——', next: 's12' },
+  s12: { type: 'dialog', speaker: 'liu',
+    text: '但是。明天就要上线了。我们没有时间走完整的评审流程，也没有时间让医院方重新签字确认变更。',
+    next: 's13' },
+  s13: { type: 'dialog', speaker: 'liu',
+    text: '未走审批的代码不能并入主线。你的补丁，撤掉。我们用原版上线，下个迭代再处理这个问题。',
+    mood: 'tense',
+    next: 's14' },
+
+  s14: { type: 'dialog', speaker: 'lin',
+    text: '……刘哥，下个迭代是三个月后。这三个月里如果出事——',
+    mood: 'shock',
+    next: 's15' },
+  s15: { type: 'dialog', speaker: 'liu',
+    text: '出事我担。你按我说的做。',
+    mood: 'tense',
+    next: 'choice_speak_up' },
+
+  // ★ 选择2：玩家此刻要不要站出来说话
+  choice_speak_up: { type: 'choice', prompt: '（这是你说话的机会。你怎么做？）',
+    options: [
+      { text: 'A. "刘哥，我看过她的测试数据，问题确实严重。"',
+        next: 's16_support_lin',
+        flag: { empathy_score_add: 1, decisive_score_add: 2 } },
+      { text: 'B. "我同意刘哥的决定，先上线再说。"',
+        next: 's16_support_liu',
+        flag: { rational_score_add: 2 } },
+      { text: 'C. 低头不语，等他们自己解决。',
+        next: 's16_silent',
+        flag: { rational_score_add: 1 } },
+      { text: 'D. 偷偷对刘哥说："林茜的补丁是赵则言私下让她写的。"',
+        next: 's16_stir',
+        flag: { hostile_score_add: 2, sabotage_count_add: 1 } },
+      { text: 'E. 自己打字表态（AI对话）',
+        next: 'ai_speak_up' }
+    ]
+  },
+
+  ai_speak_up: { type: 'ai_input',
+    prompt: '会议室一片寂静。所有人都看向你。',
+    placeholder: '比如：刘哥能不能再考虑一下？/ 这事真的能这么压下去吗？',
+    speaker: 'liu',
+    context: '紧张的三方对峙现场。刘朝闻刚下决定要撤补丁、用原版上线。林茜和赵则言都没说话。玩家是一个新人，但此刻所有人在等他的反应。刘朝闻表面温和，内心希望玩家"懂事"配合，但也知道事情有风险。',
+    fallback: '我……我先听听你们怎么决定吧。',
+    next: 's17' },
+
+  s16_support_lin: { type: 'dialog', speaker: 'liu',
+    text: '你也看过？……你一个新人，怎么会去看测试数据？',
+    mood: 'shock',
+    next: 's16_support_lin2' },
+  s16_support_lin2: { type: 'dialog', speaker: 'lin',
+    text: '是我给他看的。他帮我跑了一部分测试。',
+    next: 's17' },
+
+  s16_support_liu: { type: 'dialog', speaker: 'lin',
+    text: '……你也是这个态度？',
+    mood: 'sad',
+    next: 's17' },
+
+  s16_silent: { type: 'dialog', speaker: 'narrator',
+    text: '你没有抬头。但你能感觉到林茜的目光在你身上停了几秒。',
+    next: 's17' },
+
+  s16_stir: { type: 'dialog', speaker: 'narrator',
+    text: '刘朝闻愣了一下，看向赵则言。赵则言完全懵了——"我没有！"但话已经说出口，没人能擦掉。',
+    mood: 'tense',
+    next: 's16_stir2' },
+  s16_stir2: { type: 'dialog', speaker: 'narrator',
+    text: '刘朝闻没有当场表态，但他看赵则言的眼神变了。',
+    next: 's17' },
+
+  // ===== 收走代码 =====
+  s17: { type: 'dialog', speaker: 'narrator',
+    text: '刘朝闻起身打开林茜的电脑，亲手把补丁分支删掉，然后把原版打了 tag。',
+    mood: 'tense',
+    next: 's18' },
+  s18: { type: 'dialog', speaker: 'narrator',
+    text: '那不是修补版，也不是补丁版——是从一开始就有问题的、最原始的版本。',
+    mood: 'tense',
+    next: 's19' },
+  s19: { type: 'dialog', speaker: 'narrator',
+    text: '林茜全程没说话，但你看到她的手在桌子下面攥成了拳。',
+    mood: 'tense',
+    next: 'choice_evidence' },
+
+  // ★ 选择3：关键的"是否保留证据"
+  choice_evidence: { type: 'choice', prompt: '（你看着这一切发生。你要做什么？）',
+    options: [
+      { text: 'A. 趁刘哥没注意，偷偷把林茜的补丁代码备份到自己电脑上。',
+        next: 's20_keep',
+        flag: { ch2_kept_evidence: true, decisive_score_add: 2 } },
+      { text: 'B. 什么都不做，看着事情发生。',
+        next: 's20_nothing',
+        flag: { rational_score_add: 1 } },
+      { text: 'C. 走过去拍了拍刘哥肩膀："决定得对。"',
+        next: 's20_flatter',
+        flag: { ch2_flattered_liu: true, hostile_score_add: 1 } },
+      { text: 'D. 走过去小声对林茜说："我会想办法的。"',
+        next: 's20_promise',
+        flag: { ch2_promise_lin: true, empathy_score_add: 2, decisive_score_add: 1 } },
+      { text: 'E. 自己打字决定怎么做（AI对话）',
+        next: 'ai_evidence' }
+    ]
+  },
+
+  ai_evidence: { type: 'ai_input',
+    prompt: '林茜的补丁就要被永远抹掉。你想做什么？',
+    placeholder: '说出你的想法或行动',
+    speaker: 'lin',
+    context: '刘朝闻刚强行删掉林茜的补丁。林茜表面平静但内心崩溃。玩家此刻可以选择各种行动——支持、反对、保留证据、什么都不做。这是关键时刻，决定后续走向。',
+    fallback: '我什么也没做。',
+    next: 's21' },
+
+  s20_keep: { type: 'dialog', speaker: 'narrator',
+    text: '你回到工位，假装在看代码。其实你在悄悄把补丁文件、测试数据、那份事后审批申请，全部打包到了一个加密文件夹。',
+    next: 's20_keep2' },
+  s20_keep2: { type: 'dialog', speaker: 'narrator',
+    text: '只有你知道这些数据还活着。',
+    next: 's21' },
+
+  s20_nothing: { type: 'dialog', speaker: 'narrator',
+    text: '你低下头继续做自己的事。屏幕上的代码你一行也没看进去。',
+    next: 's21' },
+
+  s20_flatter: { type: 'dialog', speaker: 'liu',
+    text: '嗯，对。年轻人就该这样想，懂事。',
+    next: 's20_flatter2' },
+  s20_flatter2: { type: 'dialog', speaker: 'narrator',
+    text: '林茜的目光从你身上扫过，停顿了不到一秒，又移开了。但你知道——你刚刚把她得罪到底了。',
+    next: 's21' },
+
+  s20_promise: { type: 'dialog', speaker: 'narrator',
+    text: '林茜看了你一眼。她没说话，但眼神里有一点之前没有过的东西。',
+    next: 's21' },
+
+  // ===== 2-3 散会后 =====
+  s21: { type: 'scene', bg: '/pages/game/images/bg_office.jpg',
+    title: '2-3 茶水间', subtitle: '傍晚 19:00',
+    mood: 'tense',
+    next: 's22' },
+
+  s22: { type: 'dialog', speaker: 'narrator',
+    text: '你去倒水，碰到林茜也在那里。她靠着流理台，手里捏着一个空杯子。',
+    next: 's23' },
+  s23: { type: 'dialog', speaker: 'lin',
+    text: '你看到了对吧。',
+    mood: 'tense',
+    next: 's24' },
+  s24: { type: 'dialog', speaker: 'lin',
+    text: '他知道有问题。他比谁都清楚。他只是赌——赌上线后三个月内不会出事。',
+    mood: 'angry',
+    next: 'choice_console' },
+
+  // ★ 选择4：怎么安慰/回应林茜
+  choice_console: { type: 'choice', prompt: '（林茜的语气听起来很疲惫。你怎么回应她？）',
+    options: [
+      { text: 'A. "也许他有他的考虑。"',
+        next: 's25', flag: { rational_score_add: 1 } },
+      { text: 'B. "我和你一样气。"',
+        next: 's25', flag: { empathy_score_add: 2 } },
+      { text: 'C. "明天高层来，要不要直接说出来？"',
+        next: 's25', flag: { decisive_score_add: 2 } },
+      { text: 'D. "你已经做得够多了，没必要继续。"',
+        next: 's25', flag: { hostile_score_add: 1 } },
+      { text: 'E. 自己打字回应她（AI对话）',
+        next: 'ai_console' }
+    ]
+  },
+
+  ai_console: { type: 'ai_input',
+    prompt: '林茜靠在流理台旁，眼睛盯着地板。',
+    placeholder: '安慰？支持？质疑？',
+    speaker: 'lin',
+    context: '茶水间里。林茜刚目睹自己的补丁被删除。她疲惫、愤怒、又压抑。她和玩家不算熟，但此刻她在试探——玩家是不是真的能理解她。',
+    fallback: '……谢谢你听我说。',
+    next: 's25' },
+
+  s25: { type: 'dialog', speaker: 'lin',
+    text: '明天会有高层主管来现场观摩。如果有人能在那个时候说出来……也许还来得及。',
+    mood: 'tense',
+    next: 's26' },
+  s26: { type: 'dialog', speaker: 'narrator',
+    text: '她说"有人"的时候，眼睛没看你。但你知道她在说谁。',
+    next: 's27' },
+  s27: { type: 'dialog', speaker: 'narrator',
+    text: '走廊那头，赵则言正在收东西。他经过茶水间门口的时候，脚步顿了一下，但没有进来。',
+    mood: 'tense',
+    next: 'choice_zhao' },
+
+  // ★ 选择5：你要不要去找赵则言聊聊
+  choice_zhao: { type: 'choice', prompt: '（赵则言看起来也心事重重。你要去找他吗？）',
+    options: [
+      { text: 'A. 追出去和他聊聊。',
+        next: 's28_chase', flag: { ch2_talked_to_zhao: true, decisive_score_add: 1, empathy_score_add: 1 } },
+      { text: 'B. 算了，明天再说。',
+        next: 's28_skip', flag: { rational_score_add: 1 } },
+      { text: 'C. 等他走远，然后回工位继续做事。',
+        next: 's28_skip' },
+      { text: 'D. 追出去对他说："其实林茜没那么倔，你再想想。"',
+        next: 's28_persuade', flag: { ch2_talked_to_zhao: true, empathy_score_add: 2 } },
+      { text: 'E. 自己打字决定（AI对话）',
+        next: 'ai_zhao' }
+    ]
+  },
+
+  ai_zhao: { type: 'ai_input',
+    prompt: '赵则言收拾东西的动作很慢。他显然在等什么。',
+    placeholder: '想对他说什么？',
+    speaker: 'zhao',
+    context: '傍晚下班时分。赵则言刚目睹了刘朝闻强行处理掉林茜的补丁，他内心矛盾——一方面流程被维护了，一方面他隐约知道这事不对。他在等有人和他认真谈谈这件事。',
+    fallback: '没什么，明天见。',
+    next: 's29' },
+
+  s28_chase: { type: 'dialog', speaker: 'zhao',
+    text: '其实……我也在想。如果真的出了事，是按流程是不是就没事了？',
+    next: 's28_chase2' },
+  s28_chase2: { type: 'dialog', speaker: 'narrator',
+    text: '他没等你回答，自顾自地走了。但你看到他眼里有一丝你之前没见过的东西——动摇。',
+    next: 's29' },
+
+  s28_skip: { type: 'dialog', speaker: 'narrator',
+    text: '你看着他走远。明天还有一场硬仗。',
+    next: 's29' },
+
+  s28_persuade: { type: 'dialog', speaker: 'zhao',
+    text: '我知道。她不是坏人。但流程就是流程……',
+    next: 's28_persuade2' },
+  s28_persuade2: { type: 'dialog', speaker: 'narrator',
+    text: '他没说完，叹了口气，转身走了。但他点了点头——你的话他听进去了。',
+    next: 's29' },
+
+  s29: { type: 'dialog', speaker: 'narrator',
+    text: '你回到工位，看着林茜的座位。她不在了——大概去洗手间了，或者回家了。',
+    next: 's30' },
+  s30: { type: 'dialog', speaker: 'narrator',
+    text: '桌上的代码审查单还摊着，最上面那一页用红笔画了一个圈：D-1。',
+    next: 's31' },
+  s31: { type: 'dialog', speaker: 'narrator',
+    text: '明天就是上线日。',
+    mood: 'tense',
+    next: 'end_ch2' },
+
+  end_ch2: { type: 'end', title: '第二章 完', nextChapter: 3 }
+}
