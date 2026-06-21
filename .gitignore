@@ -1,0 +1,15 @@
+# 依赖目录
+node_modules/
+
+# 环境变量（包含 API Key，不要提交）
+.env
+
+# 小程序私密配置（含 AppID 等）
+project.private.config.json
+
+# 日志
+*.log
+
+# 临时文件
+.temp/
+temp/
