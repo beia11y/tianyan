@@ -1,0 +1,104 @@
+在云函数详情页的"函数代码"里面粘贴以下内容：
+
+───── index.js 内容（全选复制下面的代码）─────
+
+const axios = require('axios');
+const DEEPSEEK_URL = process.env.DEEPSEEK_URL || 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_KEY = process.env.DEEPSEEK_KEY;
+
+function makeResponse(body, statusCode = 200) {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    },
+    body: typeof body === 'string' ? body : JSON.stringify(body)
+  };
+}
+
+function parseBody(event) {
+  try { return JSON.parse(event.body || '{}'); } catch (e) { return {}; }
+}
+
+function cleanPath(path) {
+  return (path || '').replace(/^\/tianyan-api/, '').replace(/^\//, '');
+}
+
+exports.main = async (event, context) => {
+  if (!DEEPSEEK_KEY) return makeResponse({ error: 'missing DEEPSEEK_KEY' }, 500);
+  const path = cleanPath(event.path);
+  const method = event.httpMethod || 'POST';
+  if (method === 'OPTIONS') return makeResponse({}, 200);
+  if (path === '' || path === '/') return makeResponse({ ok: true, service: 'tianyan-api' });
+
+  // /api/chat - 角色对话
+  if (path === 'api/chat' && method === 'POST') {
+    try {
+      const { speakerKey, speakerName, personality, context, userInput } = JSON.parse(event.body || '{}');
+      if (!userInput) return makeResponse({ error: 'missing userInput' }, 400);
+      const systemPrompt = '你是视觉小说《天眼系统》的对话生成器。你需要扮演角色【' + speakerName + '】回应玩家，并分析玩家的语气倾向。\n【' + speakerName + '的设定】' + (personality || '') + '\n【当前场景】' + (context || '无') + '\n【任务】严格返回 JSON 格式（不要任何markdown标记），结构：{"reply": "角色说的话", "tone": "倾向标签"}\n【reply 要求】用' + speakerName + '的口吻回应玩家，20-60字，只输出对话本身，不要旁白动作，保持角色性格，不要OOC，不要剧透未发生的剧情。\n【tone 标签】从 empathy / rational / hostile / decisive 中选一个最贴切的。\n只能返回 JSON，不要任何其他内容。';
+      const result = await axios.post(DEEPSEEK_URL, {
+        model: 'deepseek-chat',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userInput }],
+        temperature: 0.8, max_tokens: 200, response_format: { type: 'json_object' }
+      }, {
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DEEPSEEK_KEY },
+        timeout: 30000
+      });
+      const raw = result.data.choices[0].message.content.trim();
+      let reply = raw, tone = 'rational';
+      try {
+        const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+        reply = (parsed.reply || raw).trim().replace(/^["「『]|["」』]$/g, '').replace(/\n+/g, ' ');
+        tone = ['empathy','rational','hostile','decisive'].includes(parsed.tone) ? parsed.tone : 'rational';
+      } catch (e) { console.log('JSON parse failed'); }
+      return makeResponse({ reply, tone });
+    } catch (err) {
+      console.error('/api/chat error:', err.message);
+      return makeResponse({ error: err.message }, 500);
+    }
+  }
+
+  // /api/ending - 结局生成
+  if (path === 'api/ending' && method === 'POST') {
+    try {
+      const { code, theme, profile } = JSON.parse(event.body || '{}');
+      if (!code || !profile) return makeResponse({ error: 'missing params' }, 400);
+      const systemPrompt = '你是视觉小说《天眼系统》的专属结局作家。根据玩家数据生成一段独一无二、有情感冲击力的结局后记。\n【故事背景】天眼系统是一款养老院远程AI辅助问诊项目。林茜（发现问题的人）、赵则言（流程派）、刘朝闻（主管）立场不同。玩家的选择决定故事走向与三人的命运，也可能影响一位老人是否存活。\n【结局主题】' + (theme || '你的故事') + '（代号：' + code + '）\n【玩家画像】游玩时长：' + (profile.playTime || '未知') + '，主导性格：' + (profile.tone || '未知') + '，倾向分数：共情' + ((profile.scores && profile.scores.empathy) || 0) + '·理性' + ((profile.scores && profile.scores.rational) || 0) + '·决断' + ((profile.scores && profile.scores.decisive) || 0) + '·冷漠' + ((profile.scores && profile.scores.hostile) || 0) + '，AI对话次数：' + (profile.aiInteractions || 0) + '，关键行为：' + (profile.events || '无') + '，最近选择：' + (profile.choiceSummary || '无') + '\n【生成要求】1. 用第二人称"你"叙述，直接和玩家对话 2. 呼应玩家具体选择，提及林茜/赵则言/刘朝闻中至少一人的命运变化 3. 文字有文学性、诗意和余韵，不能流水账 4. 结尾要有一句让玩家回味的话 5. 不要输出标题、系统数据、markdown 6. 只返回结局正文，200-350字';
+      const result = await axios.post(DEEPSEEK_URL, {
+        model: 'deepseek-chat',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: '请为我生成这段独特的结局后记。' }],
+        temperature: 0.92, max_tokens: 600
+      }, {
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + DEEPSEEK_KEY },
+        timeout: 45000
+      });
+      return makeResponse({ content: result.data.choices[0].message.content.trim() });
+    } catch (err) {
+      console.error('/api/ending error:', err.message);
+      return makeResponse({ error: err.message }, 500);
+    }
+  }
+
+  return makeResponse({ error: 'not found' }, 404);
+};
+
+───── 再粘贴 package.json 内容 ─────
+
+把云函数里如果有个 package.json 文件也替换成：
+
+{
+  "name": "tianyan-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.7.2"
+  }
+}
+
+───── 保存并部署 ─────
+
+粘贴完后点击"保存"或"部署"按钮，等它安装 axios 依赖即可。

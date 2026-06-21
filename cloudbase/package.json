@@ -1,0 +1,9 @@
+{
+  "name": "tianyan-api",
+  "version": "1.0.0",
+  "description": "天眼系统小程序后端代理（腾讯云云开发云函数）",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.7.2"
+  }
+}
